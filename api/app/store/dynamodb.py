@@ -73,7 +73,11 @@ class DynamoDBNodeStore:
         # Parse the timestamp - expect ISO format string
         try:
             if isinstance(expires_at_timestamp, str):
+                # Handle both timezone-aware and timezone-naive ISO strings
                 expires_at = datetime.fromisoformat(expires_at_timestamp)
+                # If the datetime is timezone-naive, assume it's in UTC
+                if expires_at.tzinfo is None:
+                    expires_at = expires_at.replace(tzinfo=timezone.utc)
             else:
                 expires_at = datetime.fromtimestamp(expires_at_timestamp, tz=timezone.utc)
         except (ValueError, TypeError):
