@@ -18,13 +18,27 @@ class DynamoDBNodeStore:
             expires_at = datetime.fromisoformat(item['expires_at'])
             if expires_at < self._now():
                 # Auto-release
+                self.table.update_item(
+                    Key={'node': item['node']},
+                    UpdateExpression="""
+                        SET #s = :s, reserved_by = :u, expires_at = :e, updated_at = :t
+                    """,
+                    ExpressionAttributeNames={'#s': 'status'},
+                    ExpressionAttributeValues={
+                        ':s': 'available',
+                        ':u': None,
+                        ':e': None,
+                        ':t': self._isoformat(self._now())
+                    }
+                )
+                # Update the item in memory
                 item['status'] = 'available'
                 item['reserved_by'] = None
                 item['expires_at'] = None
         return item
 
     def get_node(self, node_name):
-        response = self.table.get_item(Key={'node_name': node_name})
+        response = self.table.get_item(Key={'node': node_name})
         item = response.get('Item')
         if not item:
             return None
@@ -36,24 +50,41 @@ class DynamoDBNodeStore:
         return [self._check_expired(item) for item in items]
 
     def create_node(self, node_data):
+        # Set default values for new nodes
+        node_data['status'] = 'available'  # Nodes are unreserved by default
+        node_data['reserved_by'] = None
+        node_data['expires_at'] = None
         node_data['updated_at'] = self._isoformat(self._now())
+        
         self.table.put_item(Item=node_data)
-        return {"message": "Node created"}
+        return {"message": "Node created", "status": "available"}
 
     def delete_node(self, node_name):
-        self.table.delete_item(Key={'node_name': node_name})
+        self.table.delete_item(Key={'node': node_name})
         return {"message": "Node deleted"}
 
-    def reserve_node(self, node_name, user, ttl_seconds):
+    def reserve_node(self, node_name, user, expires_at_timestamp):
         node = self.get_node(node_name)
         if not node:
             raise Exception("Node does not exist")
         if node['status'] != 'available':
             raise Exception("Node is not available for reservation")
 
-        expires_at = self._now() + timedelta(seconds=ttl_seconds)
+        # Parse the timestamp - expect ISO format string
+        try:
+            if isinstance(expires_at_timestamp, str):
+                expires_at = datetime.fromisoformat(expires_at_timestamp)
+            else:
+                expires_at = datetime.fromtimestamp(expires_at_timestamp, tz=timezone.utc)
+        except (ValueError, TypeError):
+            raise Exception("Invalid timestamp format. Use ISO format string or Unix timestamp")
+
+        # Check if the expiration time is in the future
+        if expires_at <= self._now():
+            raise Exception("Expiration time must be in the future")
+
         self.table.update_item(
-            Key={'node_name': node_name},
+            Key={'node': node_name},
             UpdateExpression="""
                 SET #s = :s, reserved_by = :u, expires_at = :e, updated_at = :t
             """,
@@ -73,7 +104,7 @@ class DynamoDBNodeStore:
             raise Exception("Node does not exist")
 
         self.table.update_item(
-            Key={'node_name': node_name},
+            Key={'node': node_name},
             UpdateExpression="""
                 SET #s = :s, reserved_by = :u, expires_at = :e, updated_at = :t
             """,
@@ -86,3 +117,30 @@ class DynamoDBNodeStore:
             }
         )
         return {"message": "Node released"}
+
+    def cleanup_expired_nodes(self):
+        """Manually trigger cleanup of expired nodes"""
+        response = self.table.scan()
+        items = response.get('Items', [])
+        cleaned_count = 0
+        
+        for item in items:
+            if item.get('expires_at'):
+                expires_at = datetime.fromisoformat(item['expires_at'])
+                if expires_at < self._now():
+                    self.table.update_item(
+                        Key={'node': item['node']},
+                        UpdateExpression="""
+                            SET #s = :s, reserved_by = :u, expires_at = :e, updated_at = :t
+                        """,
+                        ExpressionAttributeNames={'#s': 'status'},
+                        ExpressionAttributeValues={
+                            ':s': 'available',
+                            ':u': None,
+                            ':e': None,
+                            ':t': self._isoformat(self._now())
+                        }
+                    )
+                    cleaned_count += 1
+        
+        return {"message": f"Cleaned up {cleaned_count} expired nodes"}
