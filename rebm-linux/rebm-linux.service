@@ -1,0 +1,18 @@
+[Unit]
+Description=ReBM Linux Monitor
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /opt/rebm-linux/node_monitor.py
+Restart=always
+RestartSec=10
+
+# Environment variables
+Environment=REBM_API_URL=http://localhost:8000
+Environment=NODE_NAME=%H
+Environment=CHECK_INTERVAL_SECONDS=300
+
+[Install]
+WantedBy=multi-user.target 
