@@ -10,7 +10,6 @@ class Config:
     REBM_API_URL = os.getenv("REBM_API_URL", "http://localhost:8000")
     REBM_API_TIMEOUT = int(os.getenv("REBM_API_TIMEOUT", "30"))
     BOT_NAME = os.getenv("BOT_NAME", "ReBM Bot")
-    DEFAULT_CHANNEL = os.getenv("DEFAULT_CHANNEL", "#general")
 
     @classmethod
     def validate(cls):

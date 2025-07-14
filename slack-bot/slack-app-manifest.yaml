@@ -11,21 +11,36 @@ display_information:
     - Release node reservations
     - Create and delete nodes
     - Clean up expired reservations
-    
-    Commands:
-    - `/rebm-help` - Show ReBM bot help
-    - `/rebm-list` - List all nodes
-    - `/rebm-status <node>` - Get node status
-    - `/rebm-reserve <node> [hours]` - Reserve a node
-    - `/rebm-release <node>` - Release a node
-    - `/rebm-create <node> [desc]` - Create a new node
-    - `/rebm-delete <node>` - Delete a node
-    - `/rebm-cleanup` - Clean up expired reservations
 
 features:
   bot_user:
     display_name: ReBM Node Manager
     always_online: false
+  slash_commands:
+    - command: /rebm-help
+      description: Show help and usage
+      usage_hint: /rebm-help
+    - command: /rebm-list
+      description: List all nodes
+      usage_hint: /rebm-list
+    - command: /rebm-status
+      description: Show status of a node
+      usage_hint: /rebm-status <node>
+    - command: /rebm-reserve
+      description: Reserve a node (e.g. 1h, 2 days, 90m)
+      usage_hint: /rebm-reserve <node> [duration]
+    - command: /rebm-release
+      description: Release a node
+      usage_hint: /rebm-release <node>
+    - command: /rebm-create
+      description: Create a new node
+      usage_hint: /rebm-create <node> [desc]
+    - command: /rebm-delete
+      description: Delete a node
+      usage_hint: /rebm-delete <node>
+    - command: /rebm-cleanup
+      description: Clean up expired reservations
+      usage_hint: /rebm-cleanup
 
 oauth_config:
   scopes:

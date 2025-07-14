@@ -3,6 +3,8 @@ from slack_bolt.async_app import AsyncApp
 from slack_bolt.context.async_context import AsyncAck, AsyncSay
 from slack_sdk.web.async_client import AsyncWebClient
 from rebm_client import ReBMClient
+import datetime
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,25 @@ class SlackBot:
 /rebm-cleanup - Clean up expired
 """)
 
+    def humanize_timedelta(self, expires_at):
+        try:
+            # expires_at is expected to be an ISO string
+            expires_dt = datetime.datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+            now = datetime.datetime.now(datetime.timezone.utc)
+            delta = expires_dt - now
+            if delta.total_seconds() <= 0:
+                return "expired"
+            hours, remainder = divmod(int(delta.total_seconds()), 3600)
+            minutes = int(remainder // 60)
+            parts = []
+            if hours:
+                parts.append(f"{hours}h")
+            if minutes:
+                parts.append(f"{minutes}m")
+            return "expires in " + " ".join(parts)
+        except Exception:
+            return "expires at " + expires_at
+
     async def handle_list_nodes(self, ack: AsyncAck, say: AsyncSay, command):
         await ack()
         nodes = await self.rebm_client.get_nodes()
@@ -58,12 +79,23 @@ class SlackBot:
             if isinstance(n, dict):
                 node_name = n.get('node', n.get('name'))
                 status = n.get('status', 'unknown')
+                # Try to find an expiry timestamp in several possible places
+                expires = None
+                reservation = n.get('reservation')
+                if reservation and isinstance(reservation, dict):
+                    expires = reservation.get('expires') or reservation.get('expires_at')
+                if not expires:
+                    expires = n.get('expires') or n.get('expires_at')
             else:
                 node_name = str(n)
                 status = 'unknown'
+                expires = None
             if not node_name:
                 continue
-            msg += f"- `{node_name}` ({status})\n"
+            if status == 'reserved' and expires:
+                msg += f"- `{node_name}` (reserved, {self.humanize_timedelta(expires)})\n"
+            else:
+                msg += f"- `{node_name}` ({status})\n"
         await say(text=msg)
 
     async def handle_node_status(self, ack: AsyncAck, say: AsyncSay, command):
