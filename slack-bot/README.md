@@ -2,6 +2,82 @@
 
 A system for managing node reservations with real-time status tracking, web interface, and automated node monitoring.
 
+---
+
+## Chat Bot Interface
+
+ReBM includes a pluggable chat bot interface for managing node reservations directly from your team’s chat platform. The current implementation is for Slack, but the architecture allows for future support of other platforms (e.g., Microsoft Teams, Discord).
+
+### Features
+- List all nodes and their status
+- Reserve nodes for a specific duration (with flexible time formats)
+- Release node reservations
+- Create and delete nodes
+- Clean up expired reservations
+- User attribution for all actions
+- Duration rounding is clearly indicated
+- Robust error handling for node existence and duration parsing
+- Multi-word node names supported
+- All messages are public in the chat channel where the command is used
+
+### Supported Platforms
+- **Slack** (current)
+- _Pluggable: Teams, Discord, etc. (future)_
+
+### Slash Commands (Slack Example)
+| Command                              | Description                        |
+|---------------------------------------|------------------------------------|
+| `/rebm-help`                         | Show help and usage                |
+| `/rebm-list`                         | List all nodes                     |
+| `/rebm-status <node>`                | Show status of a node              |
+| `/rebm-reserve <node> [duration]`    | Reserve a node (e.g. `1h`, `2 days`, `90m`) |
+| `/rebm-release <node>`               | Release a node                     |
+| `/rebm-create <node> [desc]`         | Create a new node                  |
+| `/rebm-delete <node>`                | Delete a node                      |
+| `/rebm-cleanup`                      | Clean up expired reservations      |
+
+**Duration formats:**  
+- Single word: `1w`, `2d`, `12h`, `90m`, `24`  
+- Two words: `1 week`, `2 days`, `12 hours`, `90 minutes`  
+- Plain number: `24` (assumes hours)
+
+### Setup (Slack)
+1. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. **Create a `.env` file** (copy from `env.example` and fill in your real tokens)
+3. **(Recommended) Create a virtual environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # or venv\Scripts\activate on Windows
+   ```
+4. **Run the bot**
+   ```bash
+   python main.py
+   ```
+
+### Required Environment Variables (Slack)
+- `SLACK_BOT_TOKEN` (starts with `xoxb-`)
+- `SLACK_SIGNING_SECRET`
+- `SLACK_APP_TOKEN` (starts with `xapp-`)
+- `REBM_API_URL` (default: http://localhost:8000)
+
+### Slash Commands Registration (Slack)
+- **Recommended:** Use the `slack-app-manifest.yaml` file to register all slash commands in your Slack app settings.
+- **Avoid duplicate commands:** Only use the manifest, do not use a registration script.
+- **Check your Slack app settings** for duplicate commands and remove extras if needed.
+
+### Security & Release Checklist
+- [x] Do **not** commit `.env` or any real secrets. Only include `env.example` with placeholders.
+- [x] Do **not** commit your virtual environment (`venv/`, `.venv/`, `env/`, or `slack-bot/`).
+- [x] Delete or `.gitignore` any log files (e.g., `slack-bot.log`).
+- [x] All code and config is committed, no secrets in git history.
+- [x] README is up to date.
+- [x] Test all commands in Slack before release.
+
+---
+
 ## System Overview
 
 ReBM consists of three main components:
@@ -9,29 +85,6 @@ ReBM consists of three main components:
 - **API Server** (`api/`) - FastAPI backend with DynamoDB storage
 - **Web UI** (`web-ui/`) - React/TypeScript frontend for node management
 - **ReBM Linux** (`rebm-linux/`) - Linux service for node status monitoring
-
-## Chat Bot Interface (Slack)
-
-ReBM includes a pluggable chat bot interface for managing node reservations directly from your team’s chat platform. The current implementation is for Slack, with a clean, secure, and user-friendly design. The architecture allows for future support of other platforms (e.g., Microsoft Teams, Discord).
-
-**Key Features:**
-- List, reserve, release, create, and delete nodes from Slack
-- Flexible duration parsing with clear rounding and error messages
-- All messages are public in the channel, with user attribution for all actions
-- Robust error handling and suggestions (e.g., for node names)
-- Extensible, pluggable design for future chat platforms
-
-**Security & UX:**
-- No secrets or sensitive data committed; see security checklist in `slack-bot/README.md`
-- All command feedback is public for transparency
-- User actions are clearly attributed
-- Duration handling is strict and user-friendly
-
-**Getting Started:**
-- See [`slack-bot/README.md`](slack-bot/README.md) for setup, environment variables, and full command list
-- Register slash commands using the Slack app manifest (no registration script needed)
-
----
 
 ## Quick Start
 

@@ -1,0 +1,66 @@
+display_information:
+  name: ReBM Node Manager
+  description: Manage node reservations and deployments through Slack
+  background_color: "#2c2d30"
+  long_description: |
+    ReBM Slack Bot allows you to manage node reservations and deployments directly from Slack.
+    
+    Features:
+    - List available nodes
+    - Reserve nodes for specific durations
+    - Release node reservations
+    - Create and delete nodes
+    - Clean up expired reservations
+
+features:
+  bot_user:
+    display_name: ReBM Node Manager
+    always_online: false
+  slash_commands:
+    - command: /rebm-help
+      description: Show help and usage
+      usage_hint: /rebm-help
+    - command: /rebm-list
+      description: List all nodes
+      usage_hint: /rebm-list
+    - command: /rebm-status
+      description: Show status of a node
+      usage_hint: /rebm-status <node>
+    - command: /rebm-reserve
+      description: Reserve a node (e.g. 1h, 2 days, 90m)
+      usage_hint: /rebm-reserve <node> [duration]
+    - command: /rebm-release
+      description: Release a node
+      usage_hint: /rebm-release <node>
+    - command: /rebm-create
+      description: Create a new node
+      usage_hint: /rebm-create <node> [desc]
+    - command: /rebm-delete
+      description: Delete a node
+      usage_hint: /rebm-delete <node>
+    - command: /rebm-cleanup
+      description: Clean up expired reservations
+      usage_hint: /rebm-cleanup
+
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - channels:history
+      - channels:read
+      - chat:write
+      - commands
+      - groups:history
+      - groups:read
+      - im:history
+      - im:read
+      - im:write
+      - mpim:history
+      - mpim:read
+      - mpim:write
+      - users:read
+
+settings:
+  org_deploy_enabled: false
+  socket_mode_enabled: true
+  token_rotation_enabled: false 

@@ -1,0 +1,20 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+venv/
+.venv/
+env/
+slack-bot/
+
+# Environment files
+.env
+.env.*
+
+# Log files
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db 

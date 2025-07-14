@@ -19,6 +19,8 @@ def get_router(store):
         # Ensure the node field is set correctly
         if 'node_name' in body:
             body['node'] = body.pop('node_name')
+        if 'name' in body:
+            body['node'] = body.pop('name')
         return store.create_node(body)
 
     @router.delete("/{node}")
@@ -32,12 +34,16 @@ def get_router(store):
     async def reserve_node(node: str, body: dict):
         user = body.get("user")
         expires_at = body.get("expires_at")
-        
+        duration_hours = body.get("duration_hours")
+
         if not user:
             raise HTTPException(status_code=400, detail="User is required")
         if not expires_at:
-            raise HTTPException(status_code=400, detail="expires_at timestamp is required")
-        
+            if duration_hours:
+                from datetime import datetime, timedelta, timezone
+                expires_at = (datetime.now(timezone.utc) + timedelta(hours=duration_hours)).isoformat()
+            else:
+                raise HTTPException(status_code=400, detail="expires_at timestamp or duration_hours is required")
         try:
             return store.reserve_node(node, user, expires_at)
         except Exception as e:

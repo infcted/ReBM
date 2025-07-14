@@ -43,3 +43,5 @@ dmypy.json
 # Logs
 *.log
 
+# Env
+.env
