@@ -21,15 +21,27 @@ class ReBMClient:
         url = f"{self.api_url}{endpoint}"
         try:
             async with session.request(method, url, json=data) as resp:
-                resp.raise_for_status()
-                return await resp.json()
+                try:
+                    resp.raise_for_status()
+                    return await resp.json()
+                except aiohttp.ClientResponseError as cre:
+                    # Try to get error details from the response
+                    try:
+                        error_json = await resp.json()
+                    except Exception:
+                        error_json = None
+                    return {"error": str(cre), "status": resp.status, "details": error_json}
         except Exception as e:
             logger.error(f"API request failed: {e}")
-            return None
+            return {"error": str(e)}
 
     async def get_nodes(self):
         resp = await self._make_request("GET", "/nodes/")
-        return resp.get("nodes", []) if resp else []
+        if isinstance(resp, list):
+            return resp
+        if isinstance(resp, dict):
+            return resp.get("nodes", [])
+        return []
 
     async def get_node(self, node_name):
         return await self._make_request("GET", f"/nodes/{node_name}")

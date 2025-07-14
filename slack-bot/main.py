@@ -18,7 +18,8 @@ async def main():
             logger.error("Failed to connect to ReBM API.")
             return
         app = AsyncApp(token=Config.SLACK_BOT_TOKEN, signing_secret=Config.SLACK_SIGNING_SECRET)
-        SlackBot(app, rebm_client)
+        assert Config.SLACK_BOT_TOKEN is not None  # Validated by Config.validate()
+        SlackBot(app, rebm_client, Config.SLACK_BOT_TOKEN)
         handler = AsyncSocketModeHandler(app, Config.SLACK_APP_TOKEN)
         await handler.start_async()
     except Exception as e:

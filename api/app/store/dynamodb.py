@@ -68,7 +68,7 @@ class DynamoDBNodeStore:
         if not node:
             raise Exception("Node does not exist")
         if node['status'] != 'available':
-            raise Exception("Node is not available for reservation")
+            raise Exception("Node is already reserved")
 
         # Parse the timestamp - expect ISO format string
         try:
