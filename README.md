@@ -10,6 +10,29 @@ ReBM consists of three main components:
 - **Web UI** (`web-ui/`) - React/TypeScript frontend for node management
 - **ReBM Linux** (`rebm-linux/`) - Linux service for node status monitoring
 
+## Chat Bot Interface (Slack)
+
+ReBM includes a pluggable chat bot interface for managing node reservations directly from your team’s chat platform. The current implementation is for Slack, with a clean, secure, and user-friendly design. The architecture allows for future support of other platforms (e.g., Microsoft Teams, Discord).
+
+**Key Features:**
+- List, reserve, release, create, and delete nodes from Slack
+- Flexible duration parsing with clear rounding and error messages
+- All messages are public in the channel, with user attribution for all actions
+- Robust error handling and suggestions (e.g., for node names)
+- Extensible, pluggable design for future chat platforms
+
+**Security & UX:**
+- No secrets or sensitive data committed; see security checklist in `slack-bot/README.md`
+- All command feedback is public for transparency
+- User actions are clearly attributed
+- Duration handling is strict and user-friendly
+
+**Getting Started:**
+- See [`slack-bot/README.md`](slack-bot/README.md) for setup, environment variables, and full command list
+- Register slash commands using the Slack app manifest (no registration script needed)
+
+---
+
 ## Quick Start
 
 ### Prerequisites
