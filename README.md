@@ -1,6 +1,6 @@
 # ReBM - Reserved By Me
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A system for managing node reservations with real-time status tracking, web interface, and automated node monitoring.
 
