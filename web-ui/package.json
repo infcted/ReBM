@@ -2,6 +2,8 @@
   "name": "rebm-web-ui",
   "version": "1.0.0",
   "description": "Web UI for ReBM Node Management System",
+  "license": "MIT",
+  "author": "Oscar Baeza",
   "private": true,
   "dependencies": {
     "@types/node": "^18.15.0",
