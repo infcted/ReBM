@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
 """
-Simple ReBM Node Monitor
-Checks node reservation status and updates MOTD
+ReBM Linux Node Monitor
+Copyright (c) 2024 Oscar Baeza
+Licensed under the MIT License
 """
 
 import os

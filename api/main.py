@@ -1,3 +1,9 @@
+"""
+ReBM API Server
+Copyright (c) 2024 Oscar Baeza
+Licensed under the MIT License
+"""
+
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import nodes
