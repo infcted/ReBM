@@ -1,0 +1,27 @@
+name: Build Web UI
+
+on:
+  push:
+    branches: [main, feature/*]
+    paths:
+      - 'web-ui/**'
+      - '.github/workflows/build-web-ui.yaml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'web-ui/**'
+      - '.github/workflows/build-web-ui.yaml'
+
+jobs:
+  build:
+    uses: ./.github/workflows/rios_build.yaml
+    with:
+      working-directory: 'web-ui'
+      earthly-build-action-target: 'tag-image'
+      run_helm_build: true
+      earthly-options: '--no-output'
+      earthly-use-cache: 'true'
+    secrets:
+      ssh-key: ${{ secrets.SSH_KEY }}
+      bot-token: ${{ secrets.BOT_TOKEN }}
+      earthly-secret-args: ${{ secrets.EARTHLY_SECRET_ARGS }} 

@@ -1,29 +1,51 @@
 VERSION 0.6
 FROM ../../../+rios-ai
 
-# Custom dependencies needed for this specific ROS Node
+# Custom dependencies needed for this specific React Web UI
 custom-dependencies:
     FROM +base
     
     WORKDIR /opt/rios/src
 
-    # Use these files as needed; if you don't need them, feel free to remove from the repo / Earthfile
-    #COPY apt-packages.txt .
+    # Install Node.js and npm for React build
+    RUN apt-get update && apt-get install -y \
+        nodejs \
+        npm \
+        && rm -rf /var/lib/apt/lists/*
+    
+    # Copy package files for React app
+    COPY ../../package*.json ./
+    
+    # Install React dependencies
+    RUN npm ci --only=production
+    
+    # Copy React source code and config files
+    COPY ../../src ./src
+    COPY ../../public ./public
+    COPY ../../tailwind.config.js ./
+    COPY ../../tsconfig.json ./
+    COPY ../../postcss.config.js ./
+    
+    # Build the React app
+    RUN npm run build
 
-python-dependencies:
-    FROM +custom-dependencies
-    WORKDIR /opt/rios/src
-
-    COPY requirements.txt .
-    RUN --mount=type=cache,target=/root/.cache pip install --extra-index-url http://pypi.cloud.rios.ai/simple --trusted-host pypi.cloud.rios.ai -r requirements.txt
-
+# Install nginx for serving static files
 dep-setup:
-    FROM +python-dependencies
-    DO ../../../+PULL_DEPS
+    FROM +custom-dependencies
+    
+    # Install nginx
+    RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
+    
+    # Copy built React app to nginx directory
+    COPY --from=+custom-dependencies /opt/rios/src/build /var/www/html
+    
+    # Configure nginx for React SPA
+    RUN echo 'server { listen 80; root /var/www/html; index index.html; location / { try_files $uri $uri/ /index.html; } }' > /etc/nginx/sites-available/default
 
 ros-setup:
     FROM +dep-setup
-    DO ../../../+ESTABLISH_ROS_WORKSPACE 
+    EXPOSE 80
+    CMD ["nginx", "-g", "daemon off;"]
 
 tag-image: # Use the shared Tag Image code
     FROM +ros-setup

@@ -2,7 +2,7 @@
 set -e
 
 CURRENT_DATETIME=$(date +"%s")
-CURRENT_REPO=$(basename `git rev-parse --show-toplevel`)
+CURRENT_REPO=$(basename `git rev-parse --show-toplevel`)_web_ui
 CURRENT_BRANCH=`git rev-parse --abbrev-ref HEAD | sed 's/\//_/g'`
 CURRENT_COMMIT_HASH=`git log --pretty=format:"%h" -1`
 
