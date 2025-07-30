@@ -1,0 +1,174 @@
+name: Reusable Build Earthly / Helm
+
+on:
+  workflow_call:
+    inputs:
+      runs_on:
+        description: "Tags of runners for this job."
+        required: false
+        type: string
+        default: "['AWS']"
+      platform:
+        required: false
+        type: string
+      working-directory:
+        required: false
+        type: string
+        default : '.'
+      run_helm_build:
+        description: 'Runs helm build action when set to true. Set to false for push base images.'
+        required: false
+        type: boolean
+        default: true
+      earthly-build-action-target:
+        description: 'Earthly target to run'
+        required: false
+        type: string
+        default: 'tag-image'
+      build-args:
+        description: 'Additional --build-args to pass to Earthly (must be in JSON)'
+        type: string
+        required: false
+      earthly-options:
+        description: 'Additional [options] to pass to Earthly (string passed directly. i.e.; "--no-output")'
+        type: string
+        required: false
+        default: "--no-output"
+      earthly-args:
+        required: false
+        type: string
+      earthly-use-cache:
+        required: false
+        type: string
+        default: 'true'
+    secrets:
+      ssh-key:
+        required: true
+      bot-token:
+        required: true
+      earthly-secret-args:
+        required: false
+    outputs:
+      branch-tag:
+        description: "Branch tag from Earthly build"
+        value: ${{ jobs.build_docker_container.outputs.branch-tag }}
+      unique-tag:
+        description: "Unique tag from Earthly build"
+        value: ${{ jobs.build_docker_container.outputs.unique-tag }}
+      chart-branch:
+        description: "Chart branch tag from Helm build"
+        value: ${{ jobs.build_docker_container.outputs.chart-branch }}
+      chart-commit:
+        description: "Chart commit tag from Helm build"
+        value: ${{ jobs.build_docker_container.outputs.chart-commit }}
+jobs:
+  build_docker_container:
+    # fromJson is required since inputs don't support arrays
+    # https://github.com/orgs/community/discussions/11692#discussioncomment-3541856
+    runs-on: ${{ fromJson(inputs.runs_on) }}
+    name: Build Earthly docker container
+    outputs:
+      branch-tag: ${{ steps.extract-earthly-tags.outputs.branch-tag-only }}
+      unique-tag: ${{ steps.extract-earthly-tags.outputs.unique-tag-only }}
+      chart-branch: ${{ steps.extract-helm-tags.outputs.chart-branch-only }}
+      chart-commit: ${{ steps.extract-helm-tags.outputs.chart-commit-only }}
+    steps:
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ssh-key }}
+
+      # Specifying the ssh key forces the checkout to use ssh url instead of https.
+      # This allows committing code when attached to containers runnings on the cluster.
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.ssh-key }}
+
+      - name: Checkout base branch (PR)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          git fetch --all
+          git checkout ${{ github.event.pull_request.base.ref }}
+          git pull origin ${{ github.event.pull_request.base.ref }}
+          git checkout ${{ github.event.pull_request.head.ref }}
+          git pull origin ${{ github.event.pull_request.head.ref }}
+
+      - name: Checkout rios_github_actions repository
+        uses: actions/checkout@v4
+        with:
+          repository: rios-ai/rios_github_actions
+          path: .github/actions
+          ssh-key: ${{ secrets.ssh-key }}
+
+      - name: Helm Build Action
+        id: helm
+        if: ${{ inputs.run_helm_build }}
+        uses: ./.github/actions/helm
+        with:
+          working-directory: ${{ inputs.working-directory }}
+
+      - name: Earthly Build Action
+        id: earthly
+        uses: ./.github/actions/earthly
+        with:
+          platform: ${{ inputs.platform }}
+          working-directory: ${{ inputs.working-directory }}
+          target: ${{ inputs.earthly-build-action-target }}
+          earthly_args: ${{ inputs.earthly-args }}
+          earthly_options: ${{ inputs.earthly-options }}
+          build_args: ${{ inputs.build-args }}
+          use_cache: ${{ inputs.earthly-use-cache }}
+          secret_args: ${{ secrets.earthly-secret-args }}
+
+      - name: Extract Earthly Tags
+        id: extract-earthly-tags
+        run: |
+          # Extract just the tag from the full image name
+          # Example: registry.example.com/repo/image:tag -> tag
+          if [ -n "${{ steps.earthly.outputs.branch-tag }}" ]; then
+            echo "branch-tag-only=$(echo '${{ steps.earthly.outputs.branch-tag }}' | sed 's/.*://')" >> $GITHUB_OUTPUT
+          else
+            echo "branch-tag-only=" >> $GITHUB_OUTPUT
+          fi
+          
+          if [ -n "${{ steps.earthly.outputs.unique-tag }}" ]; then
+            echo "unique-tag-only=$(echo '${{ steps.earthly.outputs.unique-tag }}' | sed 's/.*://')" >> $GITHUB_OUTPUT
+          else
+            echo "unique-tag-only=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract Helm Tags
+        id: extract-helm-tags
+        if: ${{ inputs.run_helm_build }}
+        run: |
+          # Extract just the tag from the full chart name
+          # Example: repo/chart:tag -> tag
+          if [ -n "${{ steps.helm.outputs.chart-branch }}" ]; then
+            echo "chart-branch-only=$(echo '${{ steps.helm.outputs.chart-branch }}' | sed 's/.*://')" >> $GITHUB_OUTPUT
+          else
+            echo "chart-branch-only=" >> $GITHUB_OUTPUT
+          fi
+          
+          if [ -n "${{ steps.helm.outputs.chart-commit }}" ]; then
+            echo "chart-commit-only=$(echo '${{ steps.helm.outputs.chart-commit }}' | sed 's/.*://')" >> $GITHUB_OUTPUT
+          else
+            echo "chart-commit-only=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Notify On Push
+        uses: peter-evans/commit-comment@v3
+        with:
+          sha: ${{ github.sha }}
+          token: ${{ secrets.bot-token }}
+          body: |
+            ## ${{ inputs.working-directory }}
+            #### :heavy_check_mark: :whale: ${{ github.sha }} The following docker images have been built & pushed:
+            ```
+            ${{ steps.earthly.outputs.branch-tag }}
+            ${{ steps.earthly.outputs.unique-tag }}
+            ```
+            #### :heavy_check_mark: :chart_with_upwards_trend: ${{ github.sha }} The following helm charts have been built & pushed:
+            ```
+            ${{ steps.helm.outputs.chart-branch}}
+            ${{ steps.helm.outputs.chart-commit}}
+            ```

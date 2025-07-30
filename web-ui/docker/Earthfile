@@ -1,0 +1,40 @@
+VERSION 0.6
+FROM ../../../+rios-ai
+
+# Custom dependencies needed for this specific ROS Node
+custom-dependencies:
+    FROM +base
+    
+    WORKDIR /opt/rios/src
+
+    # Use these files as needed; if you don't need them, feel free to remove from the repo / Earthfile
+    #COPY apt-packages.txt .
+
+python-dependencies:
+    FROM +custom-dependencies
+    WORKDIR /opt/rios/src
+
+    COPY requirements.txt .
+    RUN --mount=type=cache,target=/root/.cache pip install --extra-index-url http://pypi.cloud.rios.ai/simple --trusted-host pypi.cloud.rios.ai -r requirements.txt
+
+dep-setup:
+    FROM +python-dependencies
+    DO ../../../+PULL_DEPS
+
+ros-setup:
+    FROM +dep-setup
+    DO ../../../+ESTABLISH_ROS_WORKSPACE 
+
+tag-image: # Use the shared Tag Image code
+    FROM +ros-setup
+
+    ARG CURRENT_REPO
+    ARG CURRENT_BRANCH
+    ARG CURRENT_COMMIT_HASH
+    ARG CURRENT_TAG=latest
+    ARG VERSION=0.1
+    ARG CURRENT_DATETIME
+
+    LABEL buildtime=$CURRENT_DATETIME
+
+    DO ../../../+TAG_IMAGE --BRANCH=$VERSION --REPO=rios-ai --COMMIT=$CURRENT_COMMIT_HASH
