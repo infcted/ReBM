@@ -1,0 +1,65 @@
+# Default values for rebm-slack-bot
+replicaCount: 1
+
+image:
+  repository: rebm-slack-bot
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+
+resources:
+  limits:
+    cpu: 300m
+    memory: 256Mi
+  requests:
+    cpu: 150m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Application specific configuration
+config:
+  apiUrl: "http://rebm-api:8000"
+  apiTimeout: "30"
+  botName: "ReBM Bot"
+  eventChannel: "CXXXXXXXX"  # Slack channel ID for event messages
+
+# Slack configuration (use secrets in production)
+slack:
+  botToken: ""  # xoxb-your-bot-token
+  signingSecret: ""  # your-signing-secret
+  appToken: ""  # xapp-your-app-token 

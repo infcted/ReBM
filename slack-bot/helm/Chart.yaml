@@ -1,0 +1,14 @@
+apiVersion: v2
+name: rebm-slack-bot
+description: ReBM Slack Bot - Slack integration for node management
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - rebm
+  - slack-bot
+  - slack
+  - bot
+maintainers:
+  - name: Oscar Baeza
+    email: oscar@example.com 
